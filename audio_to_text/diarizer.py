@@ -52,7 +52,20 @@ def diarize_file(
             "pyannote.audio가 설치되어 있지 않습니다.\n" + INSTALL_GUIDE
         ) from None
 
-    pipeline = Pipeline.from_pretrained(DIARIZATION_MODEL, use_auth_token=token)
+    # huggingface_hub 1.x가 use_auth_token 인자를 제거해(T-003) 인자 대신
+    # 환경변수로 토큰을 전달한다 — pyannote 내부의 모든 허브 호출이 자동 인식한다.
+    os.environ["HF_TOKEN"] = token
+    pipeline = Pipeline.from_pretrained(DIARIZATION_MODEL)
+
+    # GPU가 있으면 파이프라인을 CUDA로 이동 (긴 파일에서 속도 차이가 큼)
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            pipeline.to(torch.device("cuda"))
+    except Exception:
+        pass  # GPU 이동 실패 시 CPU로 진행 (기능상 동일)
+
     kwargs = {}
     if num_speakers:
         kwargs["num_speakers"] = num_speakers

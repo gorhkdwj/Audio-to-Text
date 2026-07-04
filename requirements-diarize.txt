@@ -1,10 +1,19 @@
-# 화자 구분(--diarize) 추가 의존성 — 선택 기능 (S4에서 검증 예정)
+# 화자 구분(--diarize) 추가 의존성 — 선택 기능
 # 주의: 용량이 크다(수 GB). pyannote 게이트 모델 약관 동의 + HF 토큰도 필요하다.
 # 설치: .venv\Scripts\python -m pip install -r requirements-diarize.txt
 
-# RTX 4090 사용 시 CUDA 12.4 빌드의 torch를 받는다.
+# T-002: 버전을 정확히 고정한다.
+# - 범위 지정(torch>=2.4)만 쓰면 pip이 PyPI 최신 torch(CPU 빌드 가능성)를 고르고,
+#   torchaudio 2.9+는 AudioMetaData 제거로 pyannote.audio 3.x와 비호환이다.
+# - "+cu124" 로컬 버전을 명시해 CUDA 12.4 빌드를 강제한다 (RTX 4090).
 --extra-index-url https://download.pytorch.org/whl/cu124
-torch>=2.4
-torchaudio>=2.4
+torch==2.5.1+cu124
+torchaudio==2.5.1+cu124
 
-pyannote.audio>=3.1
+# 4.x 메이저 변경(API 호환성) 대비 상한 고정 — S4 검증은 3.x 기준
+pyannote.audio>=3.1,<4
+
+# T-003: pyannote.audio 3.x는 내부에서 use_auth_token 인자를 사용하는데,
+# huggingface_hub 1.x에서 해당 인자가 제거되어 모델 다운로드가 실패한다.
+# hub를 0.x(인자 허용, 경고만)로 고정한다. faster-whisper와도 호환된다.
+huggingface_hub>=0.30,<1

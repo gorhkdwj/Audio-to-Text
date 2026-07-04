@@ -48,11 +48,24 @@ python -m venv .venv
 
 종료 코드: `0` 전체 성공(건너뜀 포함) / `1` 일부 파일 실패 / `2` 인자·입력 오류
 
+## 화자 구분(--diarize) 사용법
+2인 이상 대화에서 발화자별로 `화자 1:`, `화자 2:` 라벨을 붙인다. 최초 1회 준비:
+1. 추가 패키지 설치: `.venv\Scripts\python -m pip install -r requirements-diarize.txt` (torch CUDA 포함, 수 GB)
+2. HuggingFace 계정으로 두 게이트 모델 약관 동의: [speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1), [segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0)
+3. [액세스 토큰](https://huggingface.co/settings/tokens)(Read 권한) 발급 후 `HF_TOKEN` 환경변수로 등록
+
+```
+.venv\Scripts\python transcribe.py 회의.wav --format txt srt --diarize [--num-speakers 2]
+```
+화자 번호는 먼저 말한 순서대로 붙는다. 준비가 안 된 상태에서 `--diarize`를 쓰면 안내 후 화자 구분 없이 텍스트 변환만 계속한다.
+
+> ⚠️ 한 파일에 여러 언어가 섞이면 Whisper가 한 언어로만 디코딩해 다른 언어 발화가 누락될 수 있다. 화자 구분은 같은 언어로 진행된 대화에 사용을 권장한다.
+
 ## 검증 상태 (정직하게)
 - ✅ 기본 변환(txt/md/srt), GPU(RTX 4090, large-v3, float16), CPU 폴백, 건너뜀·덮어쓰기 — 실측 검증 완료
 - ✅ 폴더 일괄 + 하위 구조 미러링, `--no-timestamps`, `--language auto`, 무음 파일 처리, 종료 코드 0·1·2 — 실측 검증 완료
 - ✅ 컨테이너 실측: 오디오 wav·mp3·m4a / 동영상 mp4·mkv·mov·webm·ts (flac·ogg·opus·aac·wma·avi는 PyAV 지원 범위이나 미실측)
-- ⚠️ 화자 구분(`--diarize`)은 **아직 실측 전**(S4 예정). 준비가 안 된 상태에서 쓰면 설치·토큰 안내 후 화자 구분 없이 텍스트 변환만 계속한다.
+- ✅ 화자 구분(`--diarize`, `--num-speakers`): 2인 영어 대화 파일에서 라벨 분리·첫 등장 순서 번호 실측 검증 완료 (3인 이상·장시간 파일은 미실측)
 
 ## 지원 입력 확장자
 - 오디오: mp3 wav m4a flac ogg opus aac wma

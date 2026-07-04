@@ -10,6 +10,35 @@
 
 ---
 
+### W-010 · S4 화자 구분(--diarize) 실측 완료 (T-002~T-004 해결)
+**요청**
+- HF 토큰 설정 확인 요청 → 검증 후 S4 연속 진행(승인 흐름).
+
+**수행 작업**
+- 토큰 검증(값 비출력): 유효 확인(계정 rlaqkr12123), 게이트 2종 접근 확인 — segmentation-3.0 미동의(403) 발견 → 사용자 동의 후 200 재확인.
+- 의존성 설치에서 연쇄 이슈 3건 발견·해결:
+  - **T-002**: 범위 지정 탓에 PyPI torch 2.12(비호환·CUDA 불명) 설치됨 → `torch==2.5.1+cu124`/`torchaudio==2.5.1+cu124` 정확 고정, CUDA(RTX 4090) 인식 확인.
+  - **T-003**: pyannote 3.4 내부의 use_auth_token이 hub 1.x에서 제거되어 다운로드 실패 → `huggingface_hub>=0.30,<1` 고정. diarizer는 토큰을 환경변수로 전달(버전 독립).
+  - **T-004**: pip 휠 cuDNN 9.24와 torch 번들 9.1 이중 로드로 네이티브 크래시 → transcriber를 "torch 우선" DLL 전략으로 수정.
+- 픽스처: tools/make_test_dialogue.ps1 신규(2-보이스 이어붙임, 파라미터화). 한/영 혼합(Heami/Zira)과 영어 2인(David/Zira) 두 종 생성.
+- diarizer에 GPU 이동(pipeline.to(cuda)) 추가. 단위 테스트 1건을 sys.modules 차단 방식으로 보정(설치 여부와 무관하게 미설치 경로 검증).
+
+**변경 파일**
+- audio_to_text/diarizer.py, audio_to_text/transcriber.py, requirements-diarize.txt, tests/test_diarizer.py, tools/make_test_dialogue.ps1(신규), Troubleshootinglog.md(T-002~T-004), README.md, docs/validation-plan.md, docs/implementation-plan.md, Worklog.md
+
+**검증** (모두 실측)
+- 영어 2인 대화: David 발화 1·3 → `화자 1`, Zira 발화 2 → `화자 2` — 라벨·첫 등장 순서(D-003)·시간 매칭 정확. txt/srt 표기 규격 일치.
+- `--num-speakers 2` 힌트 동일 결과. 단위 테스트 27/27 유지.
+- 같은 프로세스에서 GPU Whisper(large-v3, cuda/float16) + pyannote 공존 정상(T-004 해결 확인).
+- 미준비 폴백(안내 후 텍스트 계속, D-003)이 T-003 진행 중 실전으로 확인됨.
+- 한계 확인: 한/영 혼합 파일에서 영어 발화 누락 + 타임스탬프 부정확(Whisper 단일 언어 디코딩) → validation-plan "확인된 한계"와 README에 명시.
+
+**판단 근거**
+- implementation-plan S4. 의존성 이슈는 각 T-ID의 재발 방지 원칙(정확 고정, 공유 의존성 양쪽 호환, CUDA 라이브러리 단일화)으로 일반화.
+
+**결과**
+- S4 완료. 남은 작업: S5(문서 최종 정리)만 남음.
+
 ### W-009 · S3 옵션·폴더 일괄·경계 E2E 검증
 **요청**
 - "진행해줘" — 권장 순서(S3 우선)대로 착수.

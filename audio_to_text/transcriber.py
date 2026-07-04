@@ -26,18 +26,31 @@ _dll_dirs_registered = False
 
 
 def _register_cuda_dll_dirs() -> None:
-    """pip으로 설치한 NVIDIA 휠의 DLL 폴더를 Windows 로더 경로에 등록한다.
+    """CUDA 관련 DLL 검색 경로를 준비한다. (T-001, T-004)
 
-    os.add_dll_directory()만으로는 부족하다: ctranslate2가 추론 시점에 일반
-    LoadLibrary("cublas64_12.dll") 호출로 DLL을 찾는데, 이 검색은 add_dll_directory
-    등록 폴더를 보지 않고 PATH를 본다. 그래서 둘 다 등록한다. (T-001)
+    전략 — 한 프로세스에는 한 버전의 cuDNN/cuBLAS만 있어야 한다:
+    - torch(화자 구분용 의존성)가 설치되어 있으면 torch를 먼저 import한다.
+      torch가 자기 번들 DLL 폴더(torch\\lib)를 PATH에 등록하므로 ctranslate2도
+      같은 DLL을 쓰게 되어 버전이 통일된다. pip 휠(nvidia-*) 경로는 등록하지
+      않는다 — 섞이면 cuDNN 심볼 불일치로 크래시한다. (T-004)
+    - torch가 없으면 pip 휠(nvidia-*)의 DLL 폴더를 add_dll_directory와 PATH
+      양쪽에 등록한다. PATH 등록이 꼭 필요한 이유: ctranslate2는 추론 시점에
+      일반 LoadLibrary() 호출로 DLL을 찾고, 이 검색은 add_dll_directory 등록
+      폴더를 보지 않는다. (T-001)
 
-    Windows가 아니거나 휠이 없으면 조용히 넘어간다(무해).
+    Windows가 아니면 조용히 넘어간다(무해).
     """
     global _dll_dirs_registered
     if _dll_dirs_registered or sys.platform != "win32":
         return
     _dll_dirs_registered = True
+
+    try:
+        import torch  # noqa: F401 — 부수효과(torch\lib을 PATH에 등록)가 목적
+        return
+    except ImportError:
+        pass
+
     purelib = Path(sysconfig.get_paths()["purelib"])
     dll_dirs = [
         dll_dir

@@ -63,9 +63,15 @@ class DiarizeFileGuardTests(unittest.TestCase):
                 os.environ["HF_TOKEN"] = old
 
     def test_token_without_pyannote_raises_install_guide(self):
-        # 토큰은 있지만 pyannote 미설치(기본 환경) → 설치 안내
-        with self.assertRaises(DiarizationUnavailable) as ctx:
-            diarize_file(Path("아무.wav"), hf_token="dummy-token-for-test")
+        # 토큰은 있지만 pyannote 미설치 상황을 모사(sys.modules 차단) → 설치 안내.
+        # (실제 환경에 pyannote가 설치돼 있어도 이 테스트는 미설치 경로를 검증한다)
+        import sys
+        from unittest import mock
+
+        blocked = {"pyannote": None, "pyannote.audio": None}
+        with mock.patch.dict(sys.modules, blocked):
+            with self.assertRaises(DiarizationUnavailable) as ctx:
+                diarize_file(Path("아무.wav"), hf_token="dummy-token-for-test")
         self.assertIn("pyannote.audio가 설치되어 있지 않습니다", str(ctx.exception))
 
 
