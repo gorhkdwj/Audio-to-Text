@@ -1,6 +1,6 @@
 # Worklog · Audio_to_Text
 
-주요 사용자 요청이 끝날 때마다 아래 형식으로 누적 기록한다. (규칙: CLAUDE.md 11절). 최신 항목을 위에 추가한다.
+**모든 작업을 빠짐없이** 아래 형식으로 누적 기록한다. 규모가 작아도 생략하지 않는다. (규칙: CLAUDE.md 11절). 최신 항목을 위에 추가한다.
 
 ## 기록 형식
 ```
@@ -9,6 +9,49 @@
 ```
 
 ---
+
+### W-003 · Worklog 기록 범위 확대 (모든 작업 기록)
+**요청**
+- Worklog를 "주요 요청"이 아니라 **모든 작업**에 대해 기록하도록 변경하고, CLAUDE.md도 그 방향으로 수정.
+
+**수행 작업**
+- CLAUDE.md 11절 Worklog 규칙을 "주요 요청마다" → "모든 작업마다"로 개정(소급 기록·분할 기록 지침 추가).
+- Worklog 상단 안내문도 동일 방향으로 수정.
+- 누락돼 있던 git 셋업을 W-002로 소급 기록.
+
+**변경 파일**
+- CLAUDE.md, Worklog.md
+
+**검증**
+- 문서 수정만 수행. 실행 검증 대상 아님(문서 정합성 육안 확인).
+
+**판단 근거**
+- 사용자가 상세한 개발 기록을 원함. 기록 누락(git 셋업)이 실제로 발생해 규칙을 강화.
+
+**결과**
+- 완료: 규칙 개정 및 소급 기록. 이후 모든 작업을 Worklog에 남긴다.
+- 남은 작업: 변경분 커밋·푸시.
+
+### W-002 · Git 저장소 초기화 및 원격 푸시
+**요청**
+- GitHub 레포(https://github.com/gorhkdwj/Audio-to-Text.git)로 git 관리 및 푸시.
+
+**수행 작업**
+- `git init` → 브랜치 `main` → 원격 `origin` 연결 → 전체 스테이징 → 커밋 → `git push -u origin main`.
+- 첫 커밋 메시지에 잘못된 셸 heredoc 표기로 `@` 문자가 혼입 → `git commit --amend`로 정리 후 `--force-with-lease`로 재푸시.
+
+**변경 파일**
+- (신규 추적) .gitignore, CLAUDE.md, README.md, Worklog/Decisionlog/Troubleshootinglog, docs/*, tests/.gitkeep, tools/.gitkeep, docs/references/.gitkeep — 커밋 `68f7f0c`
+
+**검증**
+- `git ls-remote`로 원격이 비어 있음 확인(충돌 없음). 푸시 후 `main...origin/main` 동기화 확인. `out/`·`.venv/`·비밀정보 미추적 확인.
+
+**판단 근거**
+- 초기 운영 체계를 버전 관리에 올려 이후 변경 이력을 추적하기 위함.
+
+**결과**
+- 완료: 원격 `main` 생성 및 동기화.
+- 남은 작업: 없음(후속 변경은 별도 커밋).
 
 ### W-001 · 프로젝트 운영 체계 셋업
 **요청**
