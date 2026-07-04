@@ -60,6 +60,14 @@ class ParagraphTests(unittest.TestCase):
         ]
         self.assertEqual(len(merge_paragraphs(segs)), 2)
 
+    def test_split_when_paragraph_exceeds_max_duration(self):
+        # 쉼 없는 편집 영상 모사: 간격 1초, 총 99초 → 60초 캡으로 강제 분할 (D-005)
+        segs = [Segment(i * 10.0, i * 10.0 + 9.0, f"문장{i}") for i in range(10)]
+        paragraphs = merge_paragraphs(segs)
+        self.assertGreater(len(paragraphs), 1)
+        for para in paragraphs:
+            self.assertLessEqual(para[-1].end - para[0].start, 60.0)
+
 
 class TxtTests(unittest.TestCase):
     def test_with_timestamps_and_speaker(self):

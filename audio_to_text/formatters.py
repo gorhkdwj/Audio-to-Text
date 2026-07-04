@@ -14,6 +14,7 @@ from datetime import datetime
 
 EMPTY_NOTICE = "(인식된 음성 없음)"
 PARAGRAPH_GAP_SECONDS = 2.0  # 이 이상 발화가 끊기면 새 문단
+MAX_PARAGRAPH_SECONDS = 60.0  # 편집 영상(쉼 없음)에서 문단이 무한히 길어지는 것 방지 (D-005)
 
 
 @dataclass
@@ -55,13 +56,20 @@ def format_srt_timestamp(seconds: float) -> str:
 
 
 def merge_paragraphs(segments: list[Segment]) -> list[list[Segment]]:
-    """발화 간격(≥2초) 또는 화자가 바뀌는 지점에서 문단을 나눈다."""
+    """문단 분리 규칙 (docs/requirements-contract.md, D-005):
+
+    - 발화 간격 ≥2초 → 새 문단
+    - 화자가 바뀌면 → 새 문단
+    - 한 문단이 60초를 넘게 되면 → 세그먼트 경계에서 강제로 새 문단
+      (편집된 영상은 쉼이 잘려 있어 간격 규칙만으로는 나뉘지 않는다)
+    """
     paragraphs: list[list[Segment]] = []
     current: list[Segment] = []
     for seg in segments:
         if current and (
             seg.start - current[-1].end >= PARAGRAPH_GAP_SECONDS
             or seg.speaker != current[-1].speaker
+            or seg.end - current[0].start > MAX_PARAGRAPH_SECONDS
         ):
             paragraphs.append(current)
             current = []

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import sys
+import warnings
 
 from .formatters import Segment
 
@@ -110,23 +111,31 @@ def diarize_waveform(
     # huggingface_hub 1.x가 use_auth_token 인자를 제거해(T-003) 인자 대신
     # 환경변수로 토큰을 전달한다 — pyannote 내부의 모든 허브 호출이 자동 인식한다.
     os.environ["HF_TOKEN"] = token
-    pipeline = Pipeline.from_pretrained(DIARIZATION_MODEL)
 
-    # GPU가 있으면 파이프라인을 CUDA로 이동 (긴 파일에서 속도 차이가 큼)
-    try:
-        if torch.cuda.is_available():
-            pipeline.to(torch.device("cuda"))
-    except Exception:
-        pass  # GPU 이동 실패 시 CPU로 진행 (기능상 동일)
+    # 상류 라이브러리의 "정보성" 경고는 사용자 로그(GUI 포함) 소음이라
+    # 이 블록 안에서만 숨긴다 (W-015). 대상: torch.load weights_only 예고(lightning),
+    # TF32 재현성 안내·짧은 구간 std 자유도 경고(pyannote). 오류는 그대로 드러난다.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", module=r"lightning_fabric.*")
+        warnings.filterwarnings("ignore", module=r"pyannote\.audio.*")
 
-    kwargs = {}
-    if num_speakers:
-        kwargs["num_speakers"] = num_speakers
-    audio = {
-        "waveform": torch.from_numpy(waveform).unsqueeze(0),  # (1, 샘플 수)
-        "sample_rate": sample_rate,
-    }
-    diarization = pipeline(audio, **kwargs)
+        pipeline = Pipeline.from_pretrained(DIARIZATION_MODEL)
+
+        # GPU가 있으면 파이프라인을 CUDA로 이동 (긴 파일에서 속도 차이가 큼)
+        try:
+            if torch.cuda.is_available():
+                pipeline.to(torch.device("cuda"))
+        except Exception:
+            pass  # GPU 이동 실패 시 CPU로 진행 (기능상 동일)
+
+        kwargs = {}
+        if num_speakers:
+            kwargs["num_speakers"] = num_speakers
+        audio = {
+            "waveform": torch.from_numpy(waveform).unsqueeze(0),  # (1, 샘플 수)
+            "sample_rate": sample_rate,
+        }
+        diarization = pipeline(audio, **kwargs)
 
     turns = [
         (float(turn.start), float(turn.end), str(speaker))
