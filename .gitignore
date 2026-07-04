@@ -1,0 +1,38 @@
+# 실행 결과·임시 산출물·변환 출력물
+out/
+*.log
+logs/
+
+# 비밀정보·환경 (특히 HuggingFace 토큰)
+.env
+.env.*
+secrets/
+*.key
+*.pem
+
+# 파이썬 캐시·가상환경
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# 모델·미디어 캐시 및 대용량 파일 (필요 시 조정)
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.mp3
+*.wav
+*.m4a
+*.flac
+# HuggingFace / torch 모델 캐시가 프로젝트 내부에 생길 경우
+.cache/
+models/
+
+# OS·에디터
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
