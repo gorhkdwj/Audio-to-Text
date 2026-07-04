@@ -10,6 +10,33 @@
 
 ---
 
+### W-009 · S3 옵션·폴더 일괄·경계 E2E 검증
+**요청**
+- "진행해줘" — 권장 순서(S3 우선)대로 착수.
+
+**수행 작업**
+- 도구 보강: tools/make_test_audio.ps1에 `-Text/-OutFile/-Culture` 파라미터 추가(임의 문장·언어·경로 지정), tools/make_test_video.py에 확장자별 코덱 선택(webm→Opus 48kHz, mp3→LAME, 그 외→AAC), tools/make_test_silence.py 신규(무음 WAV).
+- 픽스처 생성(전부 out/, 비커밋): 배치용 2문장(하위 폴더 포함), 영어 문장(Zira), 무음 3초, 손상 mp3, 컨테이너 6종(mkv·mov·webm·ts·mp3·m4a).
+- E2E 실행(small/cpu): T1 폴더 일괄+미러링, T2 --no-timestamps, T3 --language auto, T4 무음, T5 손상 혼합 배치, T6 컨테이너 일괄, 추가로 mp3·m4a 오디오 형식.
+
+**변경 파일**
+- tools/make_test_audio.ps1, tools/make_test_video.py, tools/make_test_silence.py(신규), docs/validation-plan.md, docs/implementation-plan.md, README.md, Worklog.md
+
+**검증** (전 항목 통과)
+- T1: 폴더 재귀 수집 2건 성공, `out/batch_out/sub/b.*`로 하위 구조 미러링 확인, 인식 내용 정답 일치.
+- T2: 타임스탬프 0건, 문단 병합 텍스트 확인.
+- T3: 영어 파일 `--language auto` → md 메타 `언어 en`, 내용 정답 일치.
+- T4: 무음 → txt/md/srt 생성, `(인식된 음성 없음)` 명시, 성공 집계, exit 0.
+- T5: 손상 mp3 + 정상 wav 배치 → 성공 1/실패 1, **exit 1** (첫 실측).
+- T6+: mkv·mov·webm(Opus)·ts·mp3·m4a 모두 디코딩·인식 성공.
+- README의 컨테이너 검증 주장에서 미실측(flac·ogg·opus·aac·wma·avi)을 분리해 정직하게 기재.
+
+**판단 근거**
+- implementation-plan S3. stderr/stdout 리다이렉트 순서 문제는 버퍼링 특성으로 코드 결함 아님(validation-plan 메모).
+
+**결과**
+- S3 완료. 남은 작업: S4(HF 토큰 대기), S5(최종 문서 정리).
+
 ### W-008 · 남은 작업 정리
 **요청**
 - 남은 작업 정리.

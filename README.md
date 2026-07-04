@@ -49,9 +49,10 @@ python -m venv .venv
 종료 코드: `0` 전체 성공(건너뜀 포함) / `1` 일부 파일 실패 / `2` 인자·입력 오류
 
 ## 검증 상태 (정직하게)
-- ✅ 기본 변환(wav·mp4 → txt/md/srt), GPU(RTX 4090, large-v3, float16), CPU 폴백, 건너뜀·덮어쓰기, 종료 코드 0·2 — 실측 검증 완료
+- ✅ 기본 변환(txt/md/srt), GPU(RTX 4090, large-v3, float16), CPU 폴백, 건너뜀·덮어쓰기 — 실측 검증 완료
+- ✅ 폴더 일괄 + 하위 구조 미러링, `--no-timestamps`, `--language auto`, 무음 파일 처리, 종료 코드 0·1·2 — 실측 검증 완료
+- ✅ 컨테이너 실측: 오디오 wav·mp3·m4a / 동영상 mp4·mkv·mov·webm·ts (flac·ogg·opus·aac·wma·avi는 PyAV 지원 범위이나 미실측)
 - ⚠️ 화자 구분(`--diarize`)은 **아직 실측 전**(S4 예정). 준비가 안 된 상태에서 쓰면 설치·토큰 안내 후 화자 구분 없이 텍스트 변환만 계속한다.
-- ⚠️ `--no-timestamps`·폴더 일괄·`--language auto`는 단위 테스트만 완료, 실전 검증은 S3 예정.
 
 ## 지원 입력 확장자
 - 오디오: mp3 wav m4a flac ogg opus aac wma
