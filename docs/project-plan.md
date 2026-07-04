@@ -26,11 +26,13 @@
 
 ## 일정·마일스톤
 - 마감: 없음(개인 프로젝트).
-- 주요 단계(상세는 `docs/implementation-plan.md`):
+- 주요 단계(단계 번호의 기준 문서는 `docs/implementation-plan.md`):
+  - S0: 환경·의존성 준비
   - S1: 기본 변환(txt·md·srt + 타임스탬프)
   - S2: GPU 동작 확인 및 DLL 폴백
-  - S3: 화자 구분(--diarize)
-  - S4: README·문서 정리
+  - S3: 폴더 일괄 처리·옵션
+  - S4: 화자 구분(--diarize)
+  - S5: README·문서 정리
 
 ## 리스크와 대응
 - CUDA/cuDNN DLL 로드 실패 → nvidia pip 휠 + `os.add_dll_directory` + CPU 자동 폴백.
