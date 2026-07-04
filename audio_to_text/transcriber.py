@@ -145,21 +145,30 @@ def load_model(model_name: str = "auto", device: str = "auto") -> tuple[LoadedMo
     return loaded, messages
 
 
+SAMPLE_RATE = 16000  # faster-whisper decode_audio 기본값 (pyannote도 동일 요구)
+
+
 def transcribe_file(
     loaded: LoadedModel,
     media_path: Path,
     language: str = "ko",
     show_progress: bool = True,
-) -> tuple[list[Segment], float, str]:
+) -> tuple[list[Segment], float, str, "object"]:
     """미디어 파일 하나를 인식한다.
 
-    반환: (세그먼트 목록, 미디어 길이(초), 감지된 언어 코드)
-    - 동영상도 같은 경로로 처리한다(faster-whisper 내장 PyAV가 디코딩).
+    반환: (세그먼트 목록, 미디어 길이(초), 감지된 언어 코드, 파형 ndarray)
+    - 동영상도 같은 경로로 처리한다(PyAV로 16kHz mono float32 디코딩).
+    - 파형을 직접 디코딩해 반환하는 이유: 화자 구분(pyannote)이 같은 파형을
+      재사용한다. 경로를 넘기면 pyannote의 soundfile 백엔드가 mp4 등
+      동영상 컨테이너를 열지 못한다. (T-005)
     - vad_filter=True로 무음 구간을 걸러낸다.
     """
+    from faster_whisper import decode_audio  # 지연 import
+
+    waveform = decode_audio(str(media_path), sampling_rate=SAMPLE_RATE)
     lang = None if language == "auto" else language
     segments_iter, info = loaded.model.transcribe(
-        str(media_path),
+        waveform,
         language=lang,
         vad_filter=True,
     )
@@ -182,4 +191,4 @@ def transcribe_file(
         bar.refresh()
     bar.close()
 
-    return segments, duration, info.language or (lang or "auto")
+    return segments, duration, info.language or (lang or "auto"), waveform

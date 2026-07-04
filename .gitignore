@@ -2,6 +2,8 @@
 out/
 *.log
 logs/
+# 실사용 미디어 변환 결과(개인 콘텐츠 — 커밋 금지)
+tests/tests-output/
 
 # 비밀정보·환경 (특히 HuggingFace 토큰)
 .env

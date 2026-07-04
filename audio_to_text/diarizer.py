@@ -12,7 +12,7 @@ pyannote/torch가 없어도 프로그램 전체가 정상 동작해야 한다.
 from __future__ import annotations
 
 import os
-from pathlib import Path
+import sys
 
 from .formatters import Segment
 
@@ -33,13 +33,18 @@ class DiarizationUnavailable(Exception):
     """화자 구분을 수행할 수 없는 상태(미설치/토큰 없음). 안내 메시지를 담는다."""
 
 
-def diarize_file(
-    media_path: Path,
+def diarize_waveform(
+    waveform,
+    sample_rate: int = 16000,
     hf_token: str | None = None,
     num_speakers: int | None = None,
 ) -> list[tuple[float, float, str]]:
     """화자 구분을 실행해 (시작초, 끝초, 화자키) turn 목록을 반환한다.
 
+    - waveform: float32 mono ndarray (faster_whisper.decode_audio 결과 재사용).
+      파일 경로 대신 파형을 받는 이유: pyannote의 soundfile 백엔드는 mp4 등
+      동영상 컨테이너를 열지 못한다. PyAV로 디코딩한 파형을 그대로 넘기면
+      모든 지원 컨테이너에서 동작하고 이중 디코딩도 없다. (T-005)
     - pyannote 미설치 또는 토큰 없음 → DiarizationUnavailable (한국어 안내 포함)
     """
     token = hf_token or os.environ.get("HF_TOKEN")
@@ -52,6 +57,32 @@ def diarize_file(
             "pyannote.audio가 설치되어 있지 않습니다.\n" + INSTALL_GUIDE
         ) from None
 
+    import torch  # pyannote가 있으면 torch도 있다 (requirements-diarize.txt)
+
+    # T-006: speechbrain이 미설치 선택 백엔드(k2 등)를 "지연 모듈"(LazyModule과
+    # 그 서브클래스 DeprecatedModuleRedirect)로 sys.modules에 등록해 두는데,
+    # 모델 로딩 중 inspect가 sys.modules를 순회하며 이 모듈의 속성을 건드리면
+    # ImportError로 파이프라인 로드가 실패한다. speechbrain의 자체 방어 가드가
+    # 경로 구분자를 "/inspect.py"로만 비교해 Windows("\\")에서 무력화되는 것이
+    # 근본 원인. 로드 전에 "등록만 되고 실제 로드되지 않은" 지연 모듈을 제거한다.
+    try:
+        import pyannote.audio.pipelines  # noqa: F401 — speechbrain 등록을 앞당김
+    except Exception:
+        pass
+    try:
+        from speechbrain.utils.importutils import LazyModule as _SBLazyModule
+    except Exception:
+        _SBLazyModule = None
+    if _SBLazyModule is not None:
+        for module_name, module in list(sys.modules.items()):
+            if (
+                module_name.startswith("speechbrain")
+                and isinstance(module, _SBLazyModule)
+                # __getattr__(지연 import) 트리거를 피하려고 __dict__로 직접 확인
+                and module.__dict__.get("lazy_module") is None
+            ):
+                sys.modules.pop(module_name, None)
+
     # huggingface_hub 1.x가 use_auth_token 인자를 제거해(T-003) 인자 대신
     # 환경변수로 토큰을 전달한다 — pyannote 내부의 모든 허브 호출이 자동 인식한다.
     os.environ["HF_TOKEN"] = token
@@ -59,8 +90,6 @@ def diarize_file(
 
     # GPU가 있으면 파이프라인을 CUDA로 이동 (긴 파일에서 속도 차이가 큼)
     try:
-        import torch
-
         if torch.cuda.is_available():
             pipeline.to(torch.device("cuda"))
     except Exception:
@@ -69,7 +98,11 @@ def diarize_file(
     kwargs = {}
     if num_speakers:
         kwargs["num_speakers"] = num_speakers
-    diarization = pipeline(str(media_path), **kwargs)
+    audio = {
+        "waveform": torch.from_numpy(waveform).unsqueeze(0),  # (1, 샘플 수)
+        "sample_rate": sample_rate,
+    }
+    diarization = pipeline(audio, **kwargs)
 
     turns = [
         (float(turn.start), float(turn.end), str(speaker))

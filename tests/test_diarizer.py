@@ -1,17 +1,20 @@
 """diarizer.py 단위 테스트 — 세그먼트-화자 매칭(순수 로직)과 미준비 안내.
 
-pyannote 실제 호출 경로는 S4에서 검증한다(여기서는 다루지 않음).
+pyannote 실제 호출 경로는 E2E(S4, W-010)에서 검증한다(여기서는 다루지 않음).
 """
 
 import unittest
-from pathlib import Path
+
+import numpy as np
 
 from audio_to_text.diarizer import (
     DiarizationUnavailable,
     assign_speakers,
-    diarize_file,
+    diarize_waveform,
 )
 from audio_to_text.formatters import Segment
+
+DUMMY_WAVE = np.zeros(16000, dtype=np.float32)  # 1초 무음 파형
 
 
 class AssignSpeakersTests(unittest.TestCase):
@@ -55,7 +58,7 @@ class DiarizeFileGuardTests(unittest.TestCase):
         old = os.environ.pop("HF_TOKEN", None)
         try:
             with self.assertRaises(DiarizationUnavailable) as ctx:
-                diarize_file(Path("아무.wav"), hf_token=None)
+                diarize_waveform(DUMMY_WAVE, hf_token=None)
             self.assertIn("HuggingFace 토큰", str(ctx.exception))
             self.assertIn("requirements-diarize.txt", str(ctx.exception))
         finally:
@@ -71,7 +74,7 @@ class DiarizeFileGuardTests(unittest.TestCase):
         blocked = {"pyannote": None, "pyannote.audio": None}
         with mock.patch.dict(sys.modules, blocked):
             with self.assertRaises(DiarizationUnavailable) as ctx:
-                diarize_file(Path("아무.wav"), hf_token="dummy-token-for-test")
+                diarize_waveform(DUMMY_WAVE, hf_token="dummy-token-for-test")
         self.assertIn("pyannote.audio가 설치되어 있지 않습니다", str(ctx.exception))
 
 

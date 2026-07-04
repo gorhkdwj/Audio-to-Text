@@ -85,14 +85,16 @@ def _transcribe_one(
     loaded: transcriber_mod.LoadedModel,
     media: Path,
     language: str,
-) -> tuple[list, float, str, transcriber_mod.LoadedModel]:
+) -> tuple[list, float, str, "object", transcriber_mod.LoadedModel]:
     """파일 하나를 인식한다. GPU 추론 실패 시 CPU로 한 번 재시도한다.
 
-    반환: (세그먼트, 길이, 언어, 이후에도 계속 쓸 LoadedModel)
+    반환: (세그먼트, 길이, 언어, 파형, 이후에도 계속 쓸 LoadedModel)
     """
     try:
-        segments, duration, lang = transcriber_mod.transcribe_file(loaded, media, language)
-        return segments, duration, lang, loaded
+        segments, duration, lang, waveform = transcriber_mod.transcribe_file(
+            loaded, media, language
+        )
+        return segments, duration, lang, waveform, loaded
     except Exception as exc:
         if loaded.device != "cuda":
             raise
@@ -100,8 +102,10 @@ def _transcribe_one(
         fallback, messages = transcriber_mod.load_model(loaded.requested_name, "cpu")
         for message in messages:
             print(f"[안내] {message}")
-        segments, duration, lang = transcriber_mod.transcribe_file(fallback, media, language)
-        return segments, duration, lang, fallback
+        segments, duration, lang, waveform = transcriber_mod.transcribe_file(
+            fallback, media, language
+        )
+        return segments, duration, lang, waveform, fallback
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -154,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
 
         # 3-2) 음성 인식
         try:
-            segments, duration, detected_lang, loaded = _transcribe_one(
+            segments, duration, detected_lang, waveform, loaded = _transcribe_one(
                 loaded, media, args.language
             )
         except Exception as exc:
@@ -163,10 +167,14 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         # 3-3) 화자 구분 (선택; 준비 안 됨 → 안내 후 계속)
+        # 인식에 쓴 파형을 그대로 재사용한다 — 경로 전달 시 mp4를 못 연다 (T-005)
         if diarize_enabled and segments:
             try:
-                turns = diarizer.diarize_file(
-                    media, hf_token=args.hf_token, num_speakers=args.num_speakers
+                turns = diarizer.diarize_waveform(
+                    waveform,
+                    sample_rate=transcriber_mod.SAMPLE_RATE,
+                    hf_token=args.hf_token,
+                    num_speakers=args.num_speakers,
                 )
                 diarizer.assign_speakers(segments, turns)
             except DiarizationUnavailable as exc:

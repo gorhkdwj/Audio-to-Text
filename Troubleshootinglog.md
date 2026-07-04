@@ -15,6 +15,48 @@
 
 ---
 
+### T-006 · speechbrain 지연 모듈(k2)로 인한 간헐적 파이프라인 로드 실패
+**발생 상황**
+- 실사용 mp4 검증 중 원시 화자 진단(2026-07-04). 처음에는 `python -c` 문맥에서만 재현됐으나, 이후 CLI 코드 경로에서도 발생 확인 → 실행 문맥 의존 간헐 크래시로 판정.
+
+**증상**
+- `ImportError: Lazy import of LazyModule(package=None, target=speechbrain.integrations.k2_fsa, loaded=False) failed` (근저: `No module named 'k2'`)
+- CLI에서는 D-003 폴백으로 텍스트 변환은 계속되나 화자 구분이 조용히 빠짐.
+
+**확인된 원인**
+- speechbrain은 선택 백엔드(k2 등)를 지연 모듈(LazyModule의 서브클래스 `DeprecatedModuleRedirect` 포함)로 sys.modules에 등록한다.
+- 모델 로딩 중 lightning/pyannote가 `inspect`로 스택을 조사할 때 sys.modules를 순회하며 이 모듈들의 속성을 건드리고, 지연 import(k2 — 미설치)가 발동해 ImportError가 난다.
+- speechbrain에 이를 막는 자체 가드가 있으나 `filename.endswith("/inspect.py")`로 비교해 **Windows 경로 구분자(`\`)에서 무력화**되는 것이 근본 원인.
+
+**조치**
+- diarizer에서 파이프라인 로드 전, "등록만 되고 실제 로드되지 않은" speechbrain 지연 모듈을 sys.modules에서 제거(isinstance로 서브클래스 포함 판별, `__dict__` 접근으로 지연 import 트리거 회피).
+- 1차 시도(클래스명 문자열 비교)는 서브클래스를 놓쳐 실패 → speechbrain 소스를 직접 읽고 수정.
+- 최종 해결 확인: 실패가 재현되던 문맥에서 3건 연속 경고 없이 화자 구분 완료.
+
+**재발 방지**
+- 외부 라이브러리의 간헐 오류는 추측 대신 **해당 소스 코드를 직접 읽고** 근본 원인을 확정한 뒤 고친다.
+- 화자 구분 실패는 항상 D-003 폴백으로 변환 자체를 막지 않게 유지한다.
+
+### T-005 · mp4 입력에서 화자 구분 실패 (pyannote가 동영상 컨테이너를 못 엶)
+**발생 상황**
+- 실사용 인터뷰 mp4 3건 배치(2026-07-04). 텍스트 변환은 3건 성공했으나 세 파일 모두 화자 라벨이 없었음.
+
+**증상**
+- `[경고] 화자 구분에 실패해 …: Error opening '…mp4': Format not recognised.`
+- 부수 교훈: 배경 실행 로그를 `tail`로 잘라 저장한 탓에 경고가 1건만 보였음(실제는 3건 전부 실패). 로그는 자르지 않고 원본을 남긴다.
+
+**확인된 원인**
+- diarizer가 pyannote에 **파일 경로**를 넘기면 pyannote는 torchaudio/soundfile 백엔드로 여는데, soundfile은 mp4 등 동영상 컨테이너를 디코딩하지 못한다(wav라서 S4 픽스처는 통과했던 것).
+
+**조치**
+- PLAN.md의 원설계대로 **파형 직접 전달** 구조로 수정: transcriber가 PyAV(`decode_audio`)로 16kHz mono float32 파형을 디코딩·반환하고, Whisper와 pyannote(`{"waveform": tensor, "sample_rate": 16000}`)가 같은 파형을 공유. 이중 디코딩도 제거됨.
+- `diarize_file(경로)` → `diarize_waveform(파형)` 개명, cli·단위 테스트 갱신.
+- 최종 해결 확인: mp4 3건 전부 경고 0건 + 화자 라벨 적용.
+
+**재발 방지**
+- 미디어 디코딩은 PyAV 단일 경로로 통일한다(외부 라이브러리에 경로를 직접 넘기지 않는다).
+- 배경 작업 로그는 원본 그대로 보존한다(요약·tail 가공 금지).
+
 ### T-004 · cuDNN 이중 로드 크래시 (pip 휠 9.24 vs torch 번들 9.1)
 **발생 상황**
 - S4, T-003의 hub 고정 후 `--diarize` 재실행(2026-07-04). Whisper(GPU) 변환은 진행됐으나 pyannote 단계에서 프로세스가 비정상 종료(exit 127), 요약 줄 미출력. 출력 파일은 이전 실행 잔재였음.
