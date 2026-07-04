@@ -1,0 +1,9 @@
+# 기본 의존성 — 음성 인식(STT)
+faster-whisper>=1.1.0
+tqdm>=4.66
+
+# Windows에서 GPU(CUDA 12) 사용 시 필요한 NVIDIA 라이브러리 (pip 휠)
+# ctranslate2(faster-whisper 백엔드)가 cuBLAS(CUDA 12)와 cuDNN 9를 요구한다.
+# CPU만 사용할 경우에도 설치는 무해하다.
+nvidia-cublas-cu12
+nvidia-cudnn-cu12>=9,<10
