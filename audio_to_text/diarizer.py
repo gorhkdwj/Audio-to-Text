@@ -33,6 +33,30 @@ class DiarizationUnavailable(Exception):
     """화자 구분을 수행할 수 없는 상태(미설치/토큰 없음). 안내 메시지를 담는다."""
 
 
+def find_hf_token(explicit: str | None = None) -> str | None:
+    """HuggingFace 토큰을 찾는다: 명시 인자 → 환경변수 → (Windows) 사용자 레지스트리.
+
+    레지스트리까지 보는 이유(T-007): GUI처럼 "토큰 설정 이전에 시작된 부모
+    프로세스"에서 실행되면 자식은 옛 환경 스냅숏을 물려받아 HF_TOKEN이 비어
+    있을 수 있다. HKCU\\Environment는 사용자 영구 환경변수의 원본이다.
+    """
+    if explicit:
+        return explicit
+    token = os.environ.get("HF_TOKEN")
+    if token:
+        return token.strip() or None
+    if sys.platform == "win32":
+        try:
+            import winreg
+
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+                value, _ = winreg.QueryValueEx(key, "HF_TOKEN")
+            return str(value).strip() or None
+        except OSError:
+            return None
+    return None
+
+
 def diarize_waveform(
     waveform,
     sample_rate: int = 16000,
@@ -47,7 +71,7 @@ def diarize_waveform(
       모든 지원 컨테이너에서 동작하고 이중 디코딩도 없다. (T-005)
     - pyannote 미설치 또는 토큰 없음 → DiarizationUnavailable (한국어 안내 포함)
     """
-    token = hf_token or os.environ.get("HF_TOKEN")
+    token = find_hf_token(hf_token)
     if not token:
         raise DiarizationUnavailable("HuggingFace 토큰이 없습니다.\n" + INSTALL_GUIDE)
     try:
