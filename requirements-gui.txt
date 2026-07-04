@@ -1,0 +1,3 @@
+# 데스크톱 GUI(선택 기능) 의존성 — D-004
+# 설치: .venv\Scripts\python -m pip install -r requirements-gui.txt
+PySide6>=6.6,<7

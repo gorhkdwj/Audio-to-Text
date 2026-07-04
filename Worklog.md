@@ -10,6 +10,32 @@
 
 ---
 
+### W-013 · S6 데스크톱 GUI(PySide6) 구현 및 자동 검증 (D-004)
+**요청**
+- "매번 명령어 입력이 힘들다" → 로컬 데스크톱 앱 요청. 방식 질문에 PySide6 선택.
+
+**수행 작업**
+- 범위 변경 절차: D-004 기록 → 계약 문서 "GUI" 절 신설(GUI는 CLI 하위 프로세스 호출, 규칙 재정의 금지, 옵션 매핑 명시) → implementation-plan S6 신설 후 구현 착수.
+- requirements-gui.txt(PySide6>=6.6,<7) + 설치.
+- gui.py 구현: 드래그&드롭/파일·폴더 추가, 형식 체크박스, 화자 구분+화자 수, 타임스탬프 생략, 언어 콤보, 출력 폴더, 덮어쓰기, QProcess 실행/중지, 실시간 로그(실행한 CLI 명령도 표시해 학습 유도), 종료 코드별 완료 안내, [출력 폴더 열기], pythonw 크래시 로그(out/gui-error.log).
+- Audio_to_Text.bat(무콘솔 더블클릭 런처, ASCII 전용), 바탕화면 바로가기 생성.
+- tests/test_gui.py(인자 조립 6건, PySide6 없으면 skip), tools/check_gui.py(offscreen 헤드리스 E2E 점검 도구).
+- 개선: transcriber가 TQDM_DISABLE 환경변수를 존중하도록 수정(GUI 로그에서 진행률 바 소음 제거 — 계약 준수).
+
+**변경 파일**
+- gui.py(신규), Audio_to_Text.bat(신규), requirements-gui.txt(신규), tests/test_gui.py(신규), tools/check_gui.py(신규), audio_to_text/transcriber.py, Decisionlog.md(D-004), docs/requirements-contract.md, docs/implementation-plan.md, docs/validation-plan.md, README.md, Worklog.md
+
+**검증**
+- 단위 테스트 33/33 통과(기존 27 + GUI 인자 6).
+- 헤드리스 E2E 통과: offscreen 창 구성 → add_paths → start_conversion → QProcess → CLI → md 생성 + "✅" 완료 로그 확인. TQDM 소음 제거 후 재확인.
+- GUI 실행 확인(창 표시). **미검증**: 실제 마우스 조작(드래그&드롭·중지 등)은 사용자 수동 확인 대기.
+
+**판단 근거**
+- 계약의 "GUI는 CLI 규칙을 재정의하지 않는다"에 따라 엔진 재구현 없이 검증 자산 재사용(D-004).
+
+**결과**
+- S6 구현·자동 검증 완료. 남은 작업: 사용자 수동 확인(드래그&드롭 사용), S5 문서 최종 정리.
+
 ### W-012 · 사용법 안내 (초급자용)
 **요청**
 - 도구 사용 방법 설명 요청.

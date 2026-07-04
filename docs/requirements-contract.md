@@ -51,6 +51,12 @@
 ## 비밀정보
 - HuggingFace 토큰은 `HF_TOKEN` 환경변수 또는 `--hf-token`으로만 입력. 코드/로그/출력에 값 저장 금지.
 
+## GUI (데스크톱 앱, D-004)
+- GUI(`gui.py`)는 **CLI(`transcribe.py`)를 하위 프로세스로 호출**한다. 변환 규칙·옵션 의미·출력 규격은 이 문서의 규칙과 동일하며 **GUI가 재정의하지 않는다.**
+- 옵션 매핑: 형식 체크박스→`--format` / 화자 구분→`--diarize`(+`--num-speakers`) / 타임스탬프 생략→`--no-timestamps` / 언어 선택→`--language` / 출력 폴더→`--output-dir`(비우면 원본 옆) / 덮어쓰기→`--overwrite`.
+- 진행 상황은 CLI 로그를 그대로 표시한다(진행률 바 소음 방지를 위해 하위 프로세스에 `TQDM_DISABLE=1`). 중지 = 하위 프로세스 종료(이미 저장된 파일은 CLI 규칙대로 유지).
+- 실행 방법: `Audio_to_Text.bat` 더블클릭(콘솔 창 없음) 또는 바탕화면 바로가기.
+
 ## 완료 기준
 - 알려진 정답 문장의 TTS 오디오로 txt·md·srt가 생성되고 내용/타임스탬프가 규격에 맞는다. (통과 판정 기준은 `docs/validation-plan.md`를 따른다)
 - GPU/CPU 경로 모두 동작 확인. 폴더 일괄 처리·--no-timestamps·--overwrite 동작 확인.

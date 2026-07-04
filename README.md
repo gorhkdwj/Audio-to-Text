@@ -15,7 +15,17 @@ python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 ```
 
-## 사용법
+## 가장 쉬운 사용법 — 데스크톱 앱 (GUI)
+명령어 없이 쓰는 방법:
+1. 바탕화면의 **"Audio to Text"** 바로가기(또는 프로젝트 폴더의 `Audio_to_Text.bat`)를 더블클릭
+2. 변환할 파일/폴더를 창에 **드래그해서 놓기** (또는 [파일 추가] 버튼)
+3. 옵션 선택(기본값이면 md 문서 생성, 회의 녹음이면 "화자 구분" 체크) → **[변환 시작]**
+4. 끝나면 **[출력 폴더 열기]**로 결과 확인
+
+- GUI는 아래 CLI를 내부에서 그대로 호출하므로 변환 규칙·결과는 완전히 동일하다.
+- 다른 PC에서 처음 설정할 때만 GUI 의존성 설치 필요: `.venv\Scripts\python -m pip install -r requirements-gui.txt`
+
+## 사용법 — 명령줄 (CLI)
 ```
 .venv\Scripts\python transcribe.py <파일_또는_폴더> [추가입력 ...] [옵션]
 ```
@@ -67,13 +77,15 @@ python -m venv .venv
 - ✅ 폴더 일괄 + 하위 구조 미러링, `--no-timestamps`, `--language auto`, 무음 파일 처리, 종료 코드 0·1·2 — 실측 검증 완료
 - ✅ 컨테이너 실측: 오디오 wav·mp3·m4a / 동영상 mp4·mkv·mov·webm·ts (flac·ogg·opus·aac·wma·avi는 PyAV 지원 범위이나 미실측)
 - ✅ 화자 구분(`--diarize`, `--num-speakers`): 2인 영어 대화 파일에서 라벨 분리·첫 등장 순서 번호 실측 검증 완료 (3인 이상·장시간 파일은 미실측)
+- ✅ GUI: 인자 조립 단위 테스트 + 화면 없는(offscreen) 창 구성 + 헤드리스 E2E(실제 변환 1건) 통과. 드래그&드롭·버튼 클릭 등 실제 화면 조작은 수동 확인 대상
 
 ## 지원 입력 확장자
 - 오디오: mp3 wav m4a flac ogg opus aac wma
 - 동영상: mp4 mkv mov avi webm ts
 
 ## 프로젝트 구조
-- `transcribe.py` — 진입점
+- `transcribe.py` — CLI 진입점
+- `gui.py` / `Audio_to_Text.bat` — 데스크톱 앱과 더블클릭 런처
 - `audio_to_text/` — 실행 코드 패키지 (cli / files / transcriber / formatters / diarizer)
 - `tests/` — 단위 테스트 (`.venv\Scripts\python -m unittest discover -s tests`)
 - `tools/` — 테스트 오디오(TTS)·동영상 생성 스크립트

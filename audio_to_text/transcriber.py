@@ -175,12 +175,13 @@ def transcribe_file(
     duration = float(info.duration or 0.0)
 
     segments: list[Segment] = []
+    # TQDM_DISABLE=1 환경변수도 존중한다 (GUI가 로그 소음 방지를 위해 설정)
     bar = tqdm(
         total=round(duration, 2),
         unit="s",
         desc=media_path.name,
         leave=False,
-        disable=not show_progress,
+        disable=(not show_progress) or bool(os.environ.get("TQDM_DISABLE")),
     )
     for seg in segments_iter:
         segments.append(Segment(start=seg.start, end=seg.end, text=seg.text))
