@@ -1,0 +1,10 @@
+# 화자 구분(--diarize) 추가 의존성 — 선택 기능 (S4에서 검증 예정)
+# 주의: 용량이 크다(수 GB). pyannote 게이트 모델 약관 동의 + HF 토큰도 필요하다.
+# 설치: .venv\Scripts\python -m pip install -r requirements-diarize.txt
+
+# RTX 4090 사용 시 CUDA 12.4 빌드의 torch를 받는다.
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch>=2.4
+torchaudio>=2.4
+
+pyannote.audio>=3.1

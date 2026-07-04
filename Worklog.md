@@ -10,6 +10,79 @@
 
 ---
 
+### W-007 · S2 GPU 검증 + T-001 해결 + 동영상 입력 검증
+**요청**
+- S1에 이어 계속 진행(같은 승인 흐름).
+
+**수행 작업**
+- GPU 첫 실행: 모델 로드(cuda, float16)는 성공했으나 첫 추론에서 `cublas64_12.dll` 로드 실패 → **설계한 CPU 자동 폴백이 실전에서 정상 작동**(변환 성공, exit 0) → T-001 기록.
+- 원인 수정: DLL 폴더를 `os.add_dll_directory()` 외에 `PATH`에도 등록(transcriber.py) → large-v3(cuda, float16) 추론 성공.
+- STT 통과 판정(교차 검증): 문장 2 통과(핵심 단어 전부 보존, "세 가지"→"3가지"는 허용 범위). 문장 1의 "화창"→"확장"은 3개 모델 동일 오인식 → TTS 픽스처 발음 한계로 판정.
+- tools/make_test_video.py(PyAV) 작성 → wav를 mp4로 변환해 **동영상 입력 E2E 통과**.
+- 종료 코드 2 확인(앞선 exit=0은 셸 파이프 측정 오류였음을 확인 후 정정).
+
+**변경 파일**
+- audio_to_text/transcriber.py(PATH 등록), tools/make_test_video.py(신규), Troubleshootinglog.md(T-001), docs/validation-plan.md(미검증 범위 갱신), README.md(검증 상태)
+
+**검증**
+- large-v3(cuda/float16) 추론 성공(폴백 메시지 없음), mp4 인식 결과 정답 일치, exit=2 확인.
+
+**판단 근거**
+- implementation-plan S2. "모델 로드 성공 ≠ 추론 성공" 교훈을 재발 방지에 반영.
+
+**결과**
+- S2 완료(GPU·CPU 모두 검증). 남은 작업: S3(폴더 일괄·옵션 E2E), S4(화자 구분 실측), S5(README 최종 정리).
+
+### W-006 · S1 기본 변환 구현 + 단위·E2E 검증
+**요청**
+- "시작해줘" — S1 착수.
+
+**수행 작업**
+- `audio_to_text` 패키지 구현: files.py(입력 수집·경로 미러링·이름 충돌 회피), transcriber.py(모델 로드·auto 해석·진행률·폴백), formatters.py(txt/md/srt·문단 병합·빈 결과 문구), diarizer.py(첫 등장 순 화자 라벨·겹침 최대 매칭·미준비 안내), cli.py(argparse·오케스트레이션·종료 코드), transcribe.py 진입점.
+- requirements-diarize.txt 작성(안내 메시지의 실효성 확보, S4 검증 예정).
+- 단위 테스트 27건 작성(tests/test_formatters·test_files·test_diarizer).
+- tools/make_test_audio.ps1(TTS 정답 문장 WAV 생성, UTF-8 BOM 처리).
+- 개선: 모델 지연 로드(전부 건너뜀이면 모델을 아예 로드하지 않음).
+- 계약 보완 2건: 출력 이름 충돌 회피 규칙, 파일 인코딩(txt/md UTF-8, srt UTF-8 BOM).
+
+**변경 파일**
+- audio_to_text/(6개 파일), transcribe.py, requirements-diarize.txt, tests/(3개), tools/make_test_audio.ps1, docs/requirements-contract.md
+
+**검증**
+- 단위 테스트 27/27 통과.
+- E2E(wav, cpu/small): txt·md·srt 3형식 생성, 타임스탬프·메타표·SRT 블록 규격 일치.
+- 계약 동작 확인: 건너뜀+exit 0, 지연 로드, `--diarize` 미준비 시 한국어 안내 후 계속(D-003).
+- 문장 1 "화창"→"확장" 오인식은 W-007에서 픽스처 한계로 판정.
+
+**판단 근거**
+- implementation-plan S1, requirements-contract 규격(D-003 포함) 그대로 구현.
+
+**결과**
+- S1 완료. 남은 작업: S2(→W-007).
+
+### W-005 · S0 환경·의존성 준비
+**요청**
+- "시작해줘" — S0 착수 승인.
+
+**수행 작업**
+- Python 3.10.8 확인 → `.venv` 생성, pip 26.1.2로 업그레이드.
+- `requirements.txt` 작성(faster-whisper, tqdm, nvidia-cublas-cu12, nvidia-cudnn-cu12>=9,<10) 및 설치.
+- 설치 결과: faster-whisper 1.2.1, ctranslate2 4.8.1, av(PyAV) 17.1.0, cuDNN 9.24, cuBLAS 12.9.
+
+**변경 파일**
+- requirements.txt (신규)
+
+**검증**
+- `from faster_whisper import WhisperModel` import 성공.
+- `resolve_device('auto')` → `('cuda', 'float16', None)` — pip 휠 DLL 등록으로 RTX 4090 정상 감지.
+
+**판단 근거**
+- implementation-plan S0. FFmpeg 없이 PyAV로 디코딩하는 PLAN.md 전략 유지.
+
+**결과**
+- 완료: S0 완료 조건 충족.
+- 남은 작업: S1 구현.
+
 ### W-004 · docs 문서 검토 및 계약 확정
 **요청**
 - `PLAN.md`를 더 구체화해 docs 내 각 md의 고도화 필요 여부 검토.
