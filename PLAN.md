@@ -1,5 +1,10 @@
 # 동영상/오디오 → 텍스트 추출 CLI 프로그램 설계
 
+> ⚠️ 이 문서는 **초기 설계 스냅숏**(구현 착수 전)이다. 이후 확정·변경된 사항은
+> 여기서 갱신하지 않는다. **현재 기준은 다음을 참조**하라: 확정 규격은
+> `docs/requirements-contract.md`, 진행/완료 상태는 `docs/implementation-plan.md`,
+> 주요 변경은 `Decisionlog.md`(예: GUI는 초기엔 범위 제외였으나 D-004에서 추가됨).
+
 ## Context
 
 동영상 또는 오디오 파일을 입력하면 음성을 인식해 txt/md(및 srt) 파일로 텍스트를 추출하는 프로그램을 새로 만든다. 빈 디렉터리(`C:\Users\gorhk\Playground\1.programs\0.Audio_to_Text`)에서 시작하는 신규 프로젝트다.

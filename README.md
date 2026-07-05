@@ -4,7 +4,7 @@
 
 ## 개요
 - 목적: mp4·mkv·mp3·wav 등 미디어 파일에서 음성을 글자로 변환(STT)한다.
-- 주요 사용자: 본인(개발자)이 명령줄에서 직접 실행하는 도구.
+- 사용 방법: 데스크톱 앱(GUI, 드래그&드롭) 또는 명령줄(CLI) — 둘 다 같은 엔진을 쓴다.
 - STT 엔진: 로컬 Whisper(faster-whisper) — 무료·오프라인. FFmpeg 설치 불필요(내장 PyAV가 디코딩).
 - GPU: NVIDIA GPU가 있으면 최고 품질 모델(large-v3)을 자동 사용, 불가하면 CPU로 자동 폴백.
 
@@ -58,6 +58,19 @@ python -m venv .venv
 
 종료 코드: `0` 전체 성공(건너뜀 포함) / `1` 일부 파일 실패 / `2` 인자·입력 오류
 
+## 모델 선택 안내 (`--model`)
+기본값 `auto`면 GPU에서 `large-v3`, CPU에서 `medium`을 쓴다. 대개 기본값을 권장하며, 속도가 급하거나 CPU만 있을 때만 조정한다.
+
+| 모델 | 품질 | 상대 속도 | 권장 상황 |
+|---|---|---|---|
+| `large-v3` | 최고 | 기준(1×) | GPU 사용 시 기본 — 정확도 우선 |
+| `medium` | 높음 | 약 2배 빠름 | CPU 기본값, 속도-품질 절충 |
+| `small` | 보통 | 약 4배 빠름 | 빠른 초안, 짧은 메모 |
+| `base`·`tiny` | 낮음 | 매우 빠름 | 실시간성/저사양 환경 |
+
+- 처음 쓰는 모델은 자동 다운로드된다(large-v3 약 3GB, 이후 캐시 재사용).
+- RTX 4090 기준 실측: large-v3(GPU)로 32분 영상 변환이 수 분 내. CPU만 있으면 `--model small`을 권장한다.
+
 ## 화자 구분(--diarize) 사용법
 2인 이상 대화에서 발화자별로 `화자 1:`, `화자 2:` 라벨을 붙인다. 최초 1회 준비:
 1. 추가 패키지 설치: `.venv\Scripts\python -m pip install -r requirements-diarize.txt` (torch CUDA 포함, 수 GB)
@@ -76,8 +89,10 @@ python -m venv .venv
 - ✅ 기본 변환(txt/md/srt), GPU(RTX 4090, large-v3, float16), CPU 폴백, 건너뜀·덮어쓰기 — 실측 검증 완료
 - ✅ 폴더 일괄 + 하위 구조 미러링, `--no-timestamps`, `--language auto`, 무음 파일 처리, 종료 코드 0·1·2 — 실측 검증 완료
 - ✅ 컨테이너 실측: 오디오 wav·mp3·m4a / 동영상 mp4·mkv·mov·webm·ts (flac·ogg·opus·aac·wma·avi는 PyAV 지원 범위이나 미실측)
-- ✅ 화자 구분(`--diarize`, `--num-speakers`): 2인 영어 대화 파일에서 라벨 분리·첫 등장 순서 번호 실측 검증 완료 (3인 이상·장시간 파일은 미실측)
-- ✅ GUI: 인자 조립 단위 테스트 + 화면 없는(offscreen) 창 구성 + 헤드리스 E2E(실제 변환 1건) 통과. 드래그&드롭·버튼 클릭 등 실제 화면 조작은 수동 확인 대상
+- ✅ 화자 구분(`--diarize`, `--num-speakers`): 2인 대화 라벨 분리 + 실사용 32분 다화자 예능(12화자) 처리 검증 완료. 화자 수의 정답 일치는 영상 내용을 아는 사용자 판정 대상
+- ✅ 실사용 검증: 1인 인터뷰 3건 + 장시간(32분) 다화자 영상 — GUI로 변환 성공
+- ✅ GUI: 인자 조립 단위 테스트 + 헤드리스 E2E(실제 변환) + 실사용 확인. 변환 중 [중지]·[출력 폴더 열기] 세부 조작은 수동 확인 대상
+- 단위 테스트 38건 통과 (`.venv\Scripts\python -m unittest discover -s tests`)
 
 ## 지원 입력 확장자
 - 오디오: mp3 wav m4a flac ogg opus aac wma

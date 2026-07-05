@@ -13,15 +13,16 @@
 - (선택) 화자 구분으로 "화자 1/2"를 나눌 수 있다.
 
 ## 범위
-- 포함: 로컬 STT(faster-whisper), CLI, 한국어 위주(auto 감지), txt·md·srt 출력, 폴더 일괄 처리, 타임스탬프 on/off, 화자 구분(선택 기능), GPU/CPU 자동 선택.
-- 제외(추후 확장 후보): GUI/드래그앤드롭, 실시간 마이크 입력, 번역 기능, 클라우드 API 모드.
+- 포함: 로컬 STT(faster-whisper), CLI, **데스크톱 GUI(드래그앤드롭, D-004로 범위 추가)**, 한국어 위주(auto 감지), txt·md·srt 출력, 폴더 일괄 처리, 타임스탬프 on/off, 화자 구분(선택 기능), GPU/CPU 자동 선택.
+- 제외(추후 확장 후보): 실시간 마이크 입력, 번역 기능, 클라우드 API 모드.
+  - (GUI/드래그앤드롭은 초기엔 제외였으나 실사용 요청으로 D-004에서 포함으로 변경됨.)
 
 ## 주요 사용자와 사용 시나리오
-- 사용자: 본인(개발자). 강의·회의·인터뷰 녹음이나 동영상을 텍스트로 정리할 때 명령줄에서 실행.
-- 시나리오: `python transcribe.py 회의.mp4 --format md srt` → 회의.md, 회의.srt 생성.
+- 사용자: 강의·회의·인터뷰 녹음이나 동영상을 텍스트로 정리하려는 사람. GUI로 드래그&드롭하거나 CLI로 실행.
+- 시나리오: 바탕화면 "Audio to Text" 실행 → 파일 드래그 → 옵션 선택 → 변환. (또는 `python transcribe.py 회의.mp4 --format md srt`)
 
 ## 산출물
-- CLI 자동화 도구(파이썬). 진입점 `transcribe.py` + `audio_to_text/` 패키지.
+- 데스크톱 앱(`gui.py` + `Audio_to_Text.bat`)과 CLI 도구(`transcribe.py` + `audio_to_text/` 패키지). 둘 다 같은 변환 엔진을 공유.
 - 사용 설명 README(한국어), requirements.txt / requirements-diarize.txt.
 
 ## 일정·마일스톤
